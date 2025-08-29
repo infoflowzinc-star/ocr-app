@@ -1,18 +1,41 @@
-use Illuminate\Support\Facades\Auth;
-use App\Models\OfficeUsage;
-use Inertia\Inertia;
+<?php
 
-public function index()
+namespace App\Http\Controllers;
+
+use App\Models\Client;
+use Illuminate\Http\Request;
+
+class ClientUsageController extends Controller
 {
-    $clientId = Auth::guard('client')->id();
+    /**
+     * クライアントの利用状況一覧
+     */
+    public function index()
+    {
+        return Client::withCount([
+            'clientUsers',
+            'accounts',
+            'journalTemplates',
+        ])->get();
+    }
 
-    $usages = OfficeUsage::with('office')
-        ->where('client_user_id', $clientId)
-        ->where('billing_status', '支払済')
-        ->orderByDesc('yyyymm')
-        ->get();
+    /**
+     * 特定クライアントの利用状況詳細
+     */
+    public function show($id)
+    {
+        $client = Client::withCount([
+            'clientUsers',
+            'accounts',
+            'journalTemplates',
+        ])->findOrFail($id);
 
-    return Inertia::render('Client/Dashboard', [
-        'usages' => $usages,
-    ]);
+        return response()->json([
+            'client_id' => $client->id,
+            'name' => $client->name,
+            'users_count' => $client->client_users_count,
+            'accounts_count' => $client->accounts_count,
+            'templates_count' => $client->journal_templates_count,
+        ]);
+    }
 }

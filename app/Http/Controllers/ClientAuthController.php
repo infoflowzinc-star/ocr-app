@@ -4,29 +4,50 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Inertia\Inertia;
+use App\Models\ClientUser;
 
 class ClientAuthController extends Controller
 {
-    public function showLoginForm()
-    {
-        return Inertia::render('Client/Login');
-    }
-
+    /**
+     * クライアントユーザーのログイン
+     */
     public function login(Request $request)
     {
-        $credentials = $request->only('email', 'password');
+        $credentials = $request->validate([
+            'email' => ['required', 'email'],
+            'password' => ['required'],
+        ]);
 
-        if (Auth::guard('client')->attempt($credentials)) {
-            return redirect()->route('client.dashboard');
+        if (Auth::guard('client_user')->attempt($credentials)) {
+            $user = Auth::guard('client_user')->user();
+            return response()->json([
+                'message' => 'ログイン成功',
+                'user' => $user,
+            ]);
         }
 
-        return back()->withErrors(['email' => 'ログイン情報が正しくありません']);
+        return response()->json([
+            'message' => 'ログイン失敗',
+        ], 401);
     }
 
-    public function logout()
+    /**
+     * クライアントユーザーのログアウト
+     */
+    public function logout(Request $request)
     {
-        Auth::guard('client')->logout();
-        return redirect()->route('client.login');
+        Auth::guard('client_user')->logout();
+        return response()->json([
+            'message' => 'ログアウトしました',
+        ]);
+    }
+
+    /**
+     * ログイン中のクライアントユーザー情報取得
+     */
+    public function me(Request $request)
+    {
+        $user = Auth::guard('client_user')->user();
+        return response()->json($user);
     }
 }
